@@ -205,10 +205,29 @@ class FTD2XX(object):
         call_ft(_ft.FT_ClrRts, self.handle)
         return None
 
+    ModemStatusMasks = {
+        0x10 : "CTS",
+        0x20 : "DSR",
+        0x40 : "RI",
+        0x80 : "DCD",
+        0x0200 : "OE: Overrun Error",
+        0x0400 : "PE: Parity Error",
+        0x0800 : "FE: Framing Error",
+        0x1000 : "BI: Break Interrupt",
+    }
+
     def getModemStatus(self):
-        m = _ft.DWORD()
-        call_ft(_ft.FT_GetModemStatus, self.handle, c.byref(m))
-        return None
+        """
+        The least significant byte of the lpdwModemStatus value holds the modem status. On Windows and
+        Windows CE, the line status is held in the second least significant byte of the lpdwModemStatus value.
+        """
+        status = []
+        m = ftd2xx._ft.DWORD()
+        ftd2xx.call_ft(ftd2xx._ft.FT_GetModemStatus, self.handle, ftd2xx.c.byref(m))
+        for mask, name in self.ModemStatusMasks.iteritems():
+            if mask & m.value:
+                status.append(name)
+        return status
 
     def setChars(self, evch, evch_en, erch, erch_en):
         call_ft(_ft.FT_SetChars, self.handle, _ft.UCHAR(evch),
